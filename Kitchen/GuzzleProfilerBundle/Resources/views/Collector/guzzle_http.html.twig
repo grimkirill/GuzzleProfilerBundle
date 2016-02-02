@@ -1,0 +1,106 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% if collector.count %}
+        {% set icon %}
+            {{ include('@KitchenGuzzleProfiler/Collector/guzzle.svg') }}
+            <span class="sf-toolbar-value">{{ collector.time }}</span>
+            <span class="sf-toolbar-label">ms</span>
+        {% endset %}
+
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b>Total Time</b>
+                <span>{{ collector.time }} ms</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Calls</b>
+                <span class="sf-toolbar-status"> {{ collector.count }} </span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Errors</b>
+                <span class="sf-toolbar-status"> {{ collector.errors }} </span>
+            </div>
+        {% endset %}
+
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { 'link': true }) }}
+    {% endif %}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.count ? '' : 'disabled' }}">
+        <span class="icon">{{ include('@KitchenGuzzleProfiler/Collector/guzzle.svg') }}</span>
+        <strong>Guzzle</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Guzzle HTTP Request</h2>
+    {% if not collector.count %}
+        <div class="empty">
+            <p>No data during the request.</p>
+        </div>
+    {% else %}
+
+        <div class="metrics">
+            <div class="metric">
+                <span class="value">{{ collector.time }} <span class="unit">ms</span></span>
+                <span class="label">Total execution time</span>
+            </div>
+
+            <div class="metric">
+                <span class="value">{{ collector.count }} <span class="unit"></span></span>
+                <span class="label">Calls</span>
+            </div>
+
+            <div class="metric">
+                <span class="value">{{ collector.errors }} <span class="unit"></span></span>
+                <span class="label">Errors</span>
+            </div>
+        </div>
+
+        <h2>Execution timeline</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Request</th>
+                <th>Response</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for req in collector.requests %}
+                <tr>
+                    {% set startInt = req.start|round(0, 'floor') %}
+                    {% set start = req.start|round(3, 'floor') %}
+                    <td>{{ ('@' ~ startInt ) | date('H:i:s') }}.{{ ((start - startInt) * 1000) | round }}</td>
+                    <td>
+                        {{ req.method }} {{ req.uri | length > 50 ? req.uri|slice(0, 50) ~ ' ...' : req.uri }}
+                        <button class="btn-link text-small sf-toggle" data-toggle-selector="#details-{{ loop.index }}" data-toggle-alt-content="Hide details">Show details</button>
+                        <div id="details-{{ loop.index }}" class="hidden">
+                            <p><strong>Request URL: </strong> {{ req.uri }}</p>
+                            <p><strong>Request Method: </strong> {{ req.method }}</p>
+                            {% if req.body %}
+                                <p><strong>Request Data: </strong> {{ req.body }}</p>
+                            {% endif %}
+                            {% if req.response_body is defined %}
+                                <p><strong>Status Code: </strong> {{ req.response_code }}</p>
+                                <p><strong>Response Body: </strong> {{ req.response_body }} </p>
+                            {% endif %}
+                            {% if req.exception is defined %}
+                                <p><strong>Error: </strong> {{ req.exception }} </p>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if req.response_code is defined %} [{{ req.response_code }}] {% endif %}
+                        {{ req.time }} ms
+                        {% if req.exception is defined %} {{ req.exception }} {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

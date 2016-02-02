@@ -1,0 +1,16 @@
+services:
+    kitchen_guzzle_profiler.middleware:
+        class: Kitchen\GuzzleProfilerBundle\Middleware\Profiler
+        arguments: ["@debug.stopwatch"]
+
+    kitchen_guzzle_profiler.configurator:
+        class: Kitchen\GuzzleProfilerBundle\Middleware\Configurator
+        arguments: ["@kitchen_guzzle_profiler.middleware"]
+
+    kitchen_guzzle_profiler.collector:
+        class: Kitchen\GuzzleProfilerBundle\DataCollector\GuzzleHttpDataCollector
+        arguments: ["@kitchen_guzzle_profiler.middleware"]
+        tags:
+            - { name: data_collector, template: "KitchenGuzzleProfilerBundle:Collector:guzzle_http", id: "app.guzzle_http" }
+
+
