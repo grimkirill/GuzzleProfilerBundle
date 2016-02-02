@@ -13,7 +13,16 @@ class GuzzleMiddlewarePass implements CompilerPassInterface
             $configurator = $container->getDefinition('kitchen_guzzle_profiler.configurator');
             $taggedServices = $container->findTaggedServiceIds('guzzle_profiler');
             foreach ($taggedServices as $id => $tags) {
-                $container->getDefinition($id)->setConfigurator([$configurator, 'configure']);
+                if (!$container->getDefinition($id)->getConfigurator()) {
+                    $container->getDefinition($id)->setConfigurator([$configurator, 'configure']);
+                } else {
+                    $configuratorClone = $configurator;
+                    $configuratorClone->addMethodCall('setNextConfigurator', $container->getDefinition($id)->getConfigurator());
+                    $container->addDefinitions([
+                        'kitchen_guzzle_profiler.configurator_' . $id => $configuratorClone
+                    ]);
+                    $container->getDefinition($id)->setConfigurator([$configuratorClone, 'configure']);
+                }
             }
         }
     }
