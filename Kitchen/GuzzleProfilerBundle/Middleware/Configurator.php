@@ -14,6 +14,8 @@ class Configurator
 {
     protected $middleware;
 
+    protected $nextConfigurator;
+
     /**
      * Configurator constructor.
      *
@@ -30,5 +32,16 @@ class Configurator
         if ($stack instanceof HandlerStack) {
             $stack->push($this->middleware);
         }
+        if ($this->nextConfigurator) {
+            call_user_func($this->nextConfigurator, $client);
+        }
+    }
+
+    /**
+     * @param mixed $nextConfigurator
+     */
+    public function setNextConfigurator($nextConfigurator, $method)
+    {
+        $this->nextConfigurator = [$nextConfigurator, $method];
     }
 }
