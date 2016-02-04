@@ -21,8 +21,9 @@ class KitchenGuzzleProfilerExtension extends Extension
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
-
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.yml');
+        $container->setParameter('kitchen_guzzle_profiler.compiler.global', $config['global']);
+        $container->getDefinition('kitchen_guzzle_profiler.middleware')->addMethodCall('setMaxSize', [$config['max_size']]);
     }
 }

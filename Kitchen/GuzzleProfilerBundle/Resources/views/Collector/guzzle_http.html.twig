@@ -91,6 +91,7 @@
                             {% if req.exception is defined %}
                                 <p><strong>Error: </strong> {{ req.exception }} </p>
                             {% endif %}
+                            {{ dump(req) }}
                         </div>
                     </td>
                     <td>

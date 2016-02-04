@@ -20,6 +20,7 @@ class Profiler
     public $totalCount = 0;
     public $totalError = 0;
 
+    protected $maxSize = 65536;
     /**
      * @var Stopwatch
      */
@@ -34,14 +35,24 @@ class Profiler
         $this->stopwatch = $stopwatch;
     }
 
+    /**
+     * @param int $maxSize
+     */
+    public function setMaxSize($maxSize)
+    {
+        $this->maxSize = $maxSize;
+    }
+
     public function __invoke(callable $handler)
     {
         return function (RequestInterface $request, array $options) use ($handler) {
-            $info = [
+            $id = count($this->data);
+            $this->data[$id] = [
                 'start' => microtime(true),
                 'method' => $request->getMethod(),
                 'uri' => (string) $request->getUri(),
                 'body' => (string) $request->getBody(),
+                'req_headers' => $request->getHeaders()
             ];
             $requestId = 'Guzzle HTTP ' . $request->getMethod() . ' ' . $request->getUri();
             $event = $this->stopwatch->start($requestId);
@@ -50,33 +61,32 @@ class Profiler
             if (array_key_exists('on_stats', $options)) {
                 $originStats = $options['on_stats'];
             }
-            $options['on_stats'] = function (TransferStats $stats) use ($info, $originStats) {
-                $info['stats'] = $stats->getHandlerStats();
+            $options['on_stats'] = function (TransferStats $stats) use ($id, $originStats) {
+                $this->data[$id]['stats'] = $stats->getHandlerStats();
                 if ($originStats && is_callable($originStats)) {
                     $originStats($stats);
                 }
             };
             return $handler($request, $options)->then(
-                function (ResponseInterface $response) use ($info, $event) {
-                    $info['end'] = microtime(true);
-                    $time = $info['end'] - $info['start'];
-                    $info['time'] = round($time * 1000, 1);
-                    $info['response_code'] = $response->getStatusCode();
-                    $info['response_body'] = (string) $response->getBody();
+                function (ResponseInterface $response) use ($id, $event) {
+                    $this->data[$id]['end'] = microtime(true);
+                    $time = $this->data[$id]['end'] - $this->data[$id]['start'];
+                    $this->data[$id]['time'] = round($time * 1000, 1);
+                    $this->data[$id]['response_code'] = $response->getStatusCode();
+                    $this->data[$id]['response_body'] = (string) $response->getBody();
+                    $this->data[$id]['response_headers'] = $response->getHeaders();
 
-                    $this->data[] = $info;
                     $this->totalTime += $time;
                     ++$this->totalCount;
                     $event->stop();
 
                     return $response;
                 },
-                function (\Exception $e) use ($info, $event) {
-                    $info['end'] = microtime(true);
-                    $time = $info['end'] - $info['start'];
-                    $info['time'] = round($time * 1000, 1);
-                    $info['exception'] = $e->getMessage();
-                    $this->data[] = $info;
+                function (\Exception $e) use ($id, $event) {
+                    $this->data[$id]['end'] = microtime(true);
+                    $time = $this->data[$id]['end'] - $this->data[$id]['start'];
+                    $this->data[$id]['time'] = round($time * 1000, 1);
+                    $this->data[$id]['exception'] = $e->getMessage();
                     $this->totalTime += $time;
                     ++$this->totalCount;
                     ++$this->totalError;

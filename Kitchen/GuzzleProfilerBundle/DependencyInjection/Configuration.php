@@ -19,10 +19,17 @@ class Configuration implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('kitchen_guzzle_profiler');
-
-        // Here you should define the parameters that are allowed to
-        // configure your bundle. See the documentation linked above for
-        // more information on that topic.
+        $rootNode
+            ->children()
+                ->booleanNode('global')
+                    ->defaultTrue()
+                    ->info('Profiling all GuzzleHttp Clients to be found in the container')
+                ->end()
+                ->scalarNode('max_size')
+                    ->defaultValue(65536)
+                    ->info('The maximum size of body (in bytes)')
+                ->end()
+            ->end();
 
         return $treeBuilder;
     }
